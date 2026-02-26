@@ -110,3 +110,42 @@ Impact:
 - Phase 5 connects the per-voice DSP path end-to-end with zero allocation in steady-state rendering.
 - Voice routing semantics are now explicit and enforceable at architecture level (dry vs reverb path split).
 - Future streaming integration has a defined replacement seam (`generateStubTone()`).
+
+## 2026-02-26: Phase 6 Asset Streaming Pipeline
+
+Decision:
+- `AudioAsset` is the API-layer playback interface and defines a caller-owned buffer contract for `readFrames()`.
+- `PcmAudioAsset` performs a defensive copy at construction; `StreamingAudioAsset` allocates a single staging `ByteBuffer` at construction (`DSP_BLOCK_SIZE * channels * 4` bytes).
+- `VoiceNode.setAsset()` enforces `AcousticConstants.SAMPLE_RATE` (48kHz) at bind time.
+- End-of-stream behavior is split by emitter mode:
+  looping emitters call `asset.reset()` and continue;
+  one-shot emitters render zeros and wait for budget-cycle demotion.
+- `VoiceManager.setVoicePoolCapacity(int)` is the cross-module capacity seam (primitive, no `core -> dsp` type dependency).
+- `StreamingAudioAsset.reset()` remains a deliberate no-op for non-seekable channels.
+- Phase 6 removes stub-tone usage from the active voice path.
+
+Rationale:
+- `AudioAsset.readFrames()` must be zero-allocation on the render path; ownership of output buffers stays with `VoiceNode`.
+- Bind-time sample-rate rejection is fail-fast and attributable. Render-time detection would allow at least one corrupted block to hit the device.
+- Looping/one-shot EOS split keeps behavior deterministic while completion signaling is still deferred.
+- Primitive capacity seam preserves module direction and avoids introducing dependency cycles.
+- Non-seekable stream rewind is not generally possible; a no-op reset with explicit warning is safer than pretending loop support exists.
+
+Constraints:
+- `AudioAsset` implementations must not allocate in `readFrames()` after construction-time setup.
+- 48kHz mismatch remains a hard error in `VoiceNode.setAsset()`.
+  `// PHASE 7: runtime resampling` marks planned relaxation.
+- One-shot EOS demotion is not immediate:
+  up to one `evaluateBudget()` interval of silence can occur before demotion.
+  Phase 7 should add an explicit completion callback to remove this tail gap.
+- `VoiceManager` trims effective promotion pressure to available configured capacity and logs when candidates exceed capacity.
+  This is an operational signal to adjust `AcousticConstants.DEFAULT_PHYSICAL_BUDGET`.
+  Trim behavior is non-fatal: lower-priority candidates are deferred to later budget cycles.
+- `StreamingAudioAsset` is currently unsuitable for `looping = true` emitters unless callers recreate it from a fresh channel at EOS.
+  `// PHASE 7: SeekableByteChannel` marks the planned fix.
+- `generateStubTone()` is no longer part of the active render source path and should be removed in cleanup to avoid integration ambiguity.
+
+Impact:
+- Real PCM assets now drive voice rendering with no steady-state render allocations.
+- Sample-rate contract violations are caught early at binding boundaries.
+- Capacity control between budget policy and available voice pool is explicit and cycle-safe.
