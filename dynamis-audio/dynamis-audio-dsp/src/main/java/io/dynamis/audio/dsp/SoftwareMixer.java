@@ -76,6 +76,8 @@ public final class SoftwareMixer {
     private final float[] voiceReverbTemp;
     /** Fingerprint registry for fingerprint-driven reverb automation. */
     private volatile AcousticFingerprintRegistry fingerprintRegistry = null;
+    /** Optional voice manager for completion drain and pool-capacity wiring. */
+    private volatile VoiceManager voiceManager = null;
 
     // -- Render statistics ----------------------------------------------------
 
@@ -179,7 +181,8 @@ public final class SoftwareMixer {
             }
 
             voice.updateFromEmitterParams();
-            generateStubTone(voiceInputScratch, AcousticConstants.DSP_BLOCK_SIZE, channels);
+            java.util.Arrays.fill(
+                voiceInputScratch, 0, AcousticConstants.DSP_BLOCK_SIZE * channels, 0f);
             voice.renderBlock(
                 voiceInputScratch, voiceDryTemp, voiceReverbTemp,
                 AcousticConstants.DSP_BLOCK_SIZE, channels);
@@ -192,6 +195,18 @@ public final class SoftwareMixer {
 
         sfxBus.submitBlock(voiceDryScratch, AcousticConstants.DSP_BLOCK_SIZE, channels);
         reverbBus.submitBlock(voiceReverbScratch, AcousticConstants.DSP_BLOCK_SIZE, channels);
+
+        // Completion drain: demote one-shot voices that exhausted this block.
+        VoiceManager vm = this.voiceManager;
+        if (vm != null) {
+            for (VoiceNode voice : voicePool.voices()) {
+                if (voice.isCompletionPending() && voice.isBound()) {
+                    LogicalEmitter completed = voice.boundEmitter();
+                    voicePool.release(voice);
+                    vm.demoteNow(completed);
+                }
+            }
+        }
 
         // 3. Render bus graph
         java.util.Arrays.fill(silenceBuffer, 0f);
@@ -261,6 +276,19 @@ public final class SoftwareMixer {
     }
     /** Exposes voice pool for integration with VoiceManager. */
     public VoicePool getVoicePool() { return voicePool; }
+    public void setVoiceManager(VoiceManager manager) {
+        this.voiceManager = manager;
+        if (manager != null) {
+            manager.setVoicePoolCapacity(voicePool.capacity());
+            for (VoiceNode voice : voicePool.voices()) {
+                voice.setCompletionListener(manager);
+            }
+        } else {
+            for (VoiceNode voice : voicePool.voices()) {
+                voice.setCompletionListener(null);
+            }
+        }
+    }
 
     public MixSnapshotManager getMixSnapshotManager() { return snapshotManager; }
 
@@ -283,11 +311,4 @@ public final class SoftwareMixer {
     /** Channel count. */
     public int getChannels() { return channels; }
 
-    /**
-     * Generates a low-amplitude stub tone for Phase 5 testing.
-     * Phase 6: replaced by real PCM from asset streaming pipeline.
-     */
-    private static void generateStubTone(float[] buffer, int frameCount, int channels) {
-        java.util.Arrays.fill(buffer, 0, frameCount * channels, 0.01f);
-    }
 }

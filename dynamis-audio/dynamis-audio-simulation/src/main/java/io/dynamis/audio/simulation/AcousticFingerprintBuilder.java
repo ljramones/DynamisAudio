@@ -30,17 +30,40 @@ public final class AcousticFingerprintBuilder {
         float volume = Math.max(1f, room.volumeMeters3());
         float surfaceArea = Math.max(1f, room.surfaceAreaMeters2());
         float scalarMfp = 4f * volume / surfaceArea;
-        float[] mfpPerBand = new float[AcousticConstants.ACOUSTIC_BAND_COUNT];
-        AcousticMaterial dominant = null;
+        float[] weightedScattering = new float[AcousticConstants.ACOUSTIC_BAND_COUNT];
+        float totalArea = 0f;
         if (snapshot != null) {
-            dominant = snapshot.material(room.dominantMaterialId());
-        }
-        for (int band = 0; band < AcousticConstants.ACOUSTIC_BAND_COUNT; band++) {
-            float scattering = 0f;
-            if (dominant != null) {
-                scattering = Math.max(0f, Math.min(0.9999f, dominant.scattering(band)));
+            for (int i = 0; i < proxy.triangleCount(); i++) {
+                AcousticProxyTriangle tri = proxy.triangle(i);
+                if (tri.roomId != room.id()) {
+                    continue;
+                }
+                AcousticMaterial mat = snapshot.material(tri.materialId);
+                if (mat == null) {
+                    continue;
+                }
+                float triArea = tri.area();
+                totalArea += triArea;
+                for (int band = 0; band < AcousticConstants.ACOUSTIC_BAND_COUNT; band++) {
+                    weightedScattering[band] += triArea
+                        * Math.max(0f, Math.min(0.9999f, mat.scattering(band)));
+                }
             }
-            mfpPerBand[band] = Math.max(0.01f, scalarMfp * (1f - scattering));
+        }
+        float[] mfpPerBand = new float[AcousticConstants.ACOUSTIC_BAND_COUNT];
+        AcousticMaterial dominantMaterial = (snapshot != null)
+            ? snapshot.material(room.dominantMaterialId())
+            : null;
+        for (int band = 0; band < AcousticConstants.ACOUSTIC_BAND_COUNT; band++) {
+            float sc;
+            if (totalArea > 0f) {
+                sc = Math.min(0.9999f, weightedScattering[band] / totalArea);
+            } else if (dominantMaterial != null) {
+                sc = Math.max(0f, Math.min(0.9999f, dominantMaterial.scattering(band)));
+            } else {
+                sc = 0f;
+            }
+            mfpPerBand[band] = Math.max(0.01f, scalarMfp * (1f - sc));
         }
 
         ReverbEstimator.computeRt60(room, rt60Scratch);

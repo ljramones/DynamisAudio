@@ -27,7 +27,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  *   evaluateBudget() may allocate (sorts a list) - runs on voice manager thread, not DSP thread.
  *   No allocation on the DSP render thread. VoiceManager never touches DSP buffers directly.
  */
-public final class VoiceManager {
+public final class VoiceManager implements VoiceCompletionListener {
 
     // -- Configuration --------------------------------------------------------
 
@@ -270,6 +270,14 @@ public final class VoiceManager {
         setState(emitter, EmitterState.VIRTUAL);
     }
 
+    /** Immediate demotion hook used by completion drain on the render worker. */
+    public void demoteNow(LogicalEmitter emitter) {
+        if (emitter == null) {
+            return;
+        }
+        demote(emitter);
+    }
+
     private int allocateSlot(LogicalEmitter emitter) {
         if (emitter.importance == EmitterImportance.CRITICAL) {
             if (criticalSlotsUsed < criticalReserve) {
@@ -335,5 +343,15 @@ public final class VoiceManager {
     /** Exposes registered emitters for integration tests and diagnostics. */
     public List<LogicalEmitter> emitters() {
         return java.util.Collections.unmodifiableList(emitters);
+    }
+
+    @Override
+    public void onVoiceComplete(long emitterId) {
+        for (LogicalEmitter emitter : emitters) {
+            if (emitter.emitterId == emitterId) {
+                demote(emitter);
+                return;
+            }
+        }
     }
 }

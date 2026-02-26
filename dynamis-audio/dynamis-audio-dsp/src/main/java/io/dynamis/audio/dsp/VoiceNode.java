@@ -2,6 +2,7 @@ package io.dynamis.audio.dsp;
 
 import io.dynamis.audio.api.AcousticConstants;
 import io.dynamis.audio.api.AudioAsset;
+import io.dynamis.audio.api.VoiceCompletionListener;
 import io.dynamis.audio.core.EmitterParams;
 import io.dynamis.audio.core.LogicalEmitter;
 
@@ -17,6 +18,8 @@ public final class VoiceNode {
     private final GainNode gainNode;
     private final ReverbSendNode reverbSendNode;
     private AudioAsset asset = null;
+    private VoiceCompletionListener completionListener = null;
+    private volatile boolean completionPending = false;
 
     private float[] pingBuffer;
     private float[] pongBuffer;
@@ -66,6 +69,7 @@ public final class VoiceNode {
         if (pongBuffer != null) {
             java.util.Arrays.fill(pongBuffer, 0f);
         }
+        completionPending = false;
     }
 
     public void bind(LogicalEmitter emitter) {
@@ -99,7 +103,7 @@ public final class VoiceNode {
                             int frameCount,
                             int channels) {
         float[] source = inputBuffer;
-        if (asset != null && !asset.isExhausted()) {
+        if (asset != null) {
             int framesRead = asset.readFrames(inputBuffer, frameCount);
             if (framesRead == 0) {
                 LogicalEmitter e = boundEmitter;
@@ -108,7 +112,10 @@ public final class VoiceNode {
                     asset.readFrames(inputBuffer, frameCount);
                 } else {
                     java.util.Arrays.fill(inputBuffer, 0, frameCount * channels, 0f);
-                    // PHASE 6: signal VoiceManager for demotion here.
+                    completionPending = true;
+                    if (completionListener != null && e != null) {
+                        completionListener.onVoiceComplete(e.emitterId);
+                    }
                 }
             }
             source = inputBuffer;
@@ -126,20 +133,30 @@ public final class VoiceNode {
      *
      * SAMPLE RATE CONTRACT:
      *   asset.sampleRate() must equal AcousticConstants.SAMPLE_RATE.
-     *   // PHASE 7: runtime resampling - relax this constraint.
+     *   Resolved Phase 7: mismatched rates are wrapped in ResamplingAudioAsset.
      */
     public void setAsset(AudioAsset asset) {
-        if (asset != null && asset.sampleRate() != AcousticConstants.SAMPLE_RATE) {
-            throw new IllegalArgumentException(
-                "AudioAsset sampleRate " + asset.sampleRate()
-                    + " != required " + AcousticConstants.SAMPLE_RATE
-                    + ". Pre-convert to 48kHz before binding. // PHASE 7: runtime resampling");
+        if (asset == null) {
+            this.asset = null;
+            return;
         }
-        this.asset = asset;
+        if (asset.sampleRate() != AcousticConstants.SAMPLE_RATE) {
+            this.asset = new io.dynamis.audio.simulation.ResamplingAudioAsset(asset);
+        } else {
+            this.asset = asset;
+        }
     }
 
     public AudioAsset getAsset() {
         return asset;
+    }
+
+    public boolean isCompletionPending() {
+        return completionPending;
+    }
+
+    public void setCompletionListener(VoiceCompletionListener listener) {
+        this.completionListener = listener;
     }
 
     private static boolean isLooping(LogicalEmitter emitter) {

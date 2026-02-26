@@ -63,4 +63,24 @@ public final class AcousticProxyTriangle {
             throw new IllegalArgumentException("Non-finite vertex component: " + name);
         }
     }
+
+    /**
+     * Surface area of this triangle in m^2.
+     *
+     * Computed from half the magnitude of AB x AC.
+     */
+    public float area() {
+        float abX = bx - ax;
+        float abY = by - ay;
+        float abZ = bz - az;
+        float acX = cx - ax;
+        float acY = cy - ay;
+        float acZ = cz - az;
+
+        float crossX = abY * acZ - abZ * acY;
+        float crossY = abZ * acX - abX * acZ;
+        float crossZ = abX * acY - abY * acX;
+        return 0.5f * (float) Math.sqrt(
+            crossX * crossX + crossY * crossY + crossZ * crossZ);
+    }
 }

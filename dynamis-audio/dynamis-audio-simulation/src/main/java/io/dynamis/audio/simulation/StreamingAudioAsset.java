@@ -96,6 +96,16 @@ public final class StreamingAudioAsset implements AudioAsset {
 
     @Override
     public void reset() {
-        System.err.println("[DynamisAudio] StreamingAudioAsset.reset() called on non-seekable channel - no-op. PHASE 7: add SeekableByteChannel support.");
+        if (channel instanceof java.nio.channels.SeekableByteChannel seekable) {
+            try {
+                seekable.position(0);
+                exhausted = false;
+            } catch (IOException e) {
+                System.err.println("[DynamisAudio] StreamingAudioAsset.reset(): seek failed - "
+                    + e.getMessage());
+            }
+        } else {
+            System.err.println("[DynamisAudio] StreamingAudioAsset.reset(): channel is not seekable - no-op. Wrap source in a SeekableByteChannel to enable looping.");
+        }
     }
 }

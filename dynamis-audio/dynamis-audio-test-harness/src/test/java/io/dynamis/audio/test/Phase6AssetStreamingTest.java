@@ -7,6 +7,7 @@ import io.dynamis.audio.core.LogicalEmitter;
 import io.dynamis.audio.core.VoiceManager;
 import io.dynamis.audio.dsp.VoiceNode;
 import io.dynamis.audio.simulation.PcmAudioAsset;
+import io.dynamis.audio.simulation.ResamplingAudioAsset;
 import io.dynamis.audio.simulation.StreamingAudioAsset;
 import java.io.ByteArrayInputStream;
 import java.nio.ByteBuffer;
@@ -160,7 +161,7 @@ class Phase6AssetStreamingTest {
     }
 
     @Test
-    void voiceNodeSetAssetRejectsWrongSampleRate() {
+    void voiceNodeSetAssetWrapsWrongSampleRate() {
         VoiceNode voice = new VoiceNode(0);
         voice.prepare(BLOCK, CH);
         AudioAsset wrongRate = new AudioAsset() {
@@ -177,10 +178,8 @@ class Phase6AssetStreamingTest {
             @Override
             public boolean isExhausted() { return false; }
         };
-        assertThatThrownBy(() -> voice.setAsset(wrongRate))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("44100")
-            .hasMessageContaining("PHASE 7");
+        assertThatCode(() -> voice.setAsset(wrongRate)).doesNotThrowAnyException();
+        assertThat(voice.getAsset()).isInstanceOf(ResamplingAudioAsset.class);
     }
 
     @Test

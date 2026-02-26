@@ -69,6 +69,7 @@ public final class AcousticConstants {
 
     /**
      * Default total physical DSP voice slots. Desktop / high-end PC tier.
+     * Referenced by VoicePool (pool capacity) and VoiceManager (promotion budget).
      * Override via AcousticConfig at engine initialisation.
      */
     public static final int DEFAULT_PHYSICAL_BUDGET = 64;
