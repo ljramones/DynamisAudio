@@ -22,6 +22,11 @@ public final class AudioSimulationCollisionWorldBootstrap {
     private AudioSimulationCollisionWorldBootstrap() {
     }
 
+    @FunctionalInterface
+    public interface AssemblyModeObserver {
+        void onResolved(CollisionWorldAssemblyMode mode);
+    }
+
     public static <T> CollisionWorld3D<T> createCollisionWorld(
             BroadPhase3D<T> broadPhase,
             Function<T, Aabb> boundsProvider,
@@ -29,6 +34,31 @@ public final class AudioSimulationCollisionWorldBootstrap {
             BiFunction<T, T, Optional<ContactManifold3D>> narrowPhase,
             PhysicsContactBodyAdapter<T> bodyAdapter,
             CollisionResponder3D<T> fallbackResponder) {
+        CollisionWorldAssemblyMode mode = PhysicsPreferredCollisionWorldFactory.resolveAssemblyModeFromRuntimeConfig();
+        System.out.println("AudioSimulationCollisionWorldBootstrap resolved collision assembly mode: " + mode);
+        return PhysicsPreferredCollisionWorldFactory.createForRuntime(
+                broadPhase,
+                boundsProvider,
+                filterProvider,
+                narrowPhase,
+                bodyAdapter,
+                fallbackResponder,
+                mode);
+    }
+
+    public static <T> CollisionWorld3D<T> createCollisionWorld(
+            BroadPhase3D<T> broadPhase,
+            Function<T, Aabb> boundsProvider,
+            Function<T, CollisionFilter> filterProvider,
+            BiFunction<T, T, Optional<ContactManifold3D>> narrowPhase,
+            PhysicsContactBodyAdapter<T> bodyAdapter,
+            CollisionResponder3D<T> fallbackResponder,
+            AssemblyModeObserver modeObserver) {
+        if (modeObserver == null) {
+            throw new IllegalArgumentException("modeObserver must not be null");
+        }
+        CollisionWorldAssemblyMode mode = PhysicsPreferredCollisionWorldFactory.resolveAssemblyModeFromRuntimeConfig();
+        modeObserver.onResolved(mode);
         return PhysicsPreferredCollisionWorldFactory.createFromRuntimeConfig(
                 broadPhase,
                 boundsProvider,

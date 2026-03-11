@@ -13,6 +13,7 @@ import org.vectrix.core.Vector3d;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -61,6 +62,32 @@ class AudioSimulationCollisionWorldBootstrapTest {
             assertEquals(1, events.size());
             assertEquals(CollisionEventType.ENTER, events.get(0).type());
             assertEquals(1, fallbackCalls.get());
+        });
+    }
+
+    @Test
+    void bootstrapReportsResolvedAssemblyModeToObserver() {
+        withAssemblyProperty(PhysicsPreferredCollisionWorldFactory.VALUE_PHYSICS_PREFERRED, () -> {
+            Body bodyA = new Body("a", new Vector3d(0.0, 0.0, 0.0), new Vector3d(1.0, 0.0, 0.0), 0.5, 1.0, 0.2);
+            Body bodyB = new Body("b", new Vector3d(0.8, 0.0, 0.0), new Vector3d(-1.0, 0.0, 0.0), 0.5, 1.0, 0.2);
+            AtomicInteger fallbackCalls = new AtomicInteger(0);
+            AtomicReference<CollisionWorldAssemblyMode> resolvedMode = new AtomicReference<>();
+            CollisionResponder3D<Body> fallback = event -> fallbackCalls.incrementAndGet();
+
+            CollisionWorld3D<Body> world = AudioSimulationCollisionWorldBootstrap.createCollisionWorld(
+                    new SweepAndPrune3D<>(),
+                    Body::aabb,
+                    body -> CollisionFilter.DEFAULT,
+                    (left, right) -> ContactGenerator3D.generate(left.aabb(), right.aabb()),
+                    new BodyAdapter(),
+                    fallback,
+                    resolvedMode::set);
+            var events = world.update(List.of(bodyA, bodyB));
+
+            assertEquals(CollisionWorldAssemblyMode.PHYSICS_PREFERRED, resolvedMode.get());
+            assertEquals(1, events.size());
+            assertEquals(CollisionEventType.ENTER, events.get(0).type());
+            assertEquals(0, fallbackCalls.get());
         });
     }
 
