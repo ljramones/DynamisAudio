@@ -27,11 +27,13 @@ DynamisAudio provides:
 The audio simulation collision bootstrap supports a single runtime property for assembly selection:
 
 - Property: `dynamis.audio.collision.assembly`
-- Accepted values:
+- Canonical values:
   - `legacy`
   - `physics_preferred`
+- Compatibility alias (accepted for now):
+  - `physics-preferred` (maps to `physics_preferred`)
 - Default behavior:
-  - If unset or invalid, mode resolves to `LEGACY`.
+  - If unset or unknown, mode resolves to `LEGACY`.
 
 Current rollout guidance (single-path only):
 
