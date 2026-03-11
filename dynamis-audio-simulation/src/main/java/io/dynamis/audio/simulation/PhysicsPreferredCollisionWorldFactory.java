@@ -10,6 +10,7 @@ import org.dynamisphysics.api.collision.PhysicsCollisionWorldAssemblies;
 import org.dynamisphysics.api.collision.PhysicsContactBodyAdapter;
 import org.dynamisphysics.api.collision.PhysicsSeamSelectionPolicy;
 
+import java.util.Locale;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -122,15 +123,20 @@ public final class PhysicsPreferredCollisionWorldFactory {
 
     public static CollisionWorldAssemblyMode resolveAssemblyModeFromRuntimeConfig() {
         String raw = System.getProperty(PROPERTY_ASSEMBLY_MODE);
+        return parseAssemblyMode(raw);
+    }
+
+    static CollisionWorldAssemblyMode parseAssemblyMode(String raw) {
         if (raw == null) {
             return CollisionWorldAssemblyMode.LEGACY;
         }
-        if (VALUE_PHYSICS_PREFERRED.equalsIgnoreCase(raw)) {
-            return CollisionWorldAssemblyMode.PHYSICS_PREFERRED;
-        }
-        if (VALUE_LEGACY.equalsIgnoreCase(raw)) {
-            return CollisionWorldAssemblyMode.LEGACY;
-        }
-        return CollisionWorldAssemblyMode.LEGACY;
+        String normalized = raw.trim()
+                .toLowerCase(Locale.ROOT)
+                .replace('-', '_');
+        return switch (normalized) {
+            case VALUE_PHYSICS_PREFERRED, "preferred" -> CollisionWorldAssemblyMode.PHYSICS_PREFERRED;
+            case VALUE_LEGACY -> CollisionWorldAssemblyMode.LEGACY;
+            default -> CollisionWorldAssemblyMode.LEGACY;
+        };
     }
 }

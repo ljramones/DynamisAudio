@@ -158,6 +158,20 @@ class PhysicsPreferredCollisionWorldFactoryTest {
                 PhysicsPreferredCollisionWorldFactory.resolveAssemblyModeFromRuntimeConfig()));
     }
 
+    @Test
+    void resolveAssemblyModeAcceptsTrimAndCaseVariants() {
+        withAssemblyProperty("  PHYSICS_PREFERRED  ", () -> assertEquals(
+                CollisionWorldAssemblyMode.PHYSICS_PREFERRED,
+                PhysicsPreferredCollisionWorldFactory.resolveAssemblyModeFromRuntimeConfig()));
+    }
+
+    @Test
+    void resolveAssemblyModeAcceptsHyphenAlias() {
+        withAssemblyProperty("physics-preferred", () -> assertEquals(
+                CollisionWorldAssemblyMode.PHYSICS_PREFERRED,
+                PhysicsPreferredCollisionWorldFactory.resolveAssemblyModeFromRuntimeConfig()));
+    }
+
     private static void withAssemblyProperty(String value, Runnable action) {
         String previous = System.getProperty(PhysicsPreferredCollisionWorldFactory.PROPERTY_ASSEMBLY_MODE);
         try {
