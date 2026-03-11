@@ -30,6 +30,13 @@
     <dependency>
       <groupId>org.dynamisphysics</groupId>
       <artifactId>dynamisphysics-api</artifactId>
+      <version>0.3.1-SNAPSHOT</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.dynamiscollision</groupId>
+      <artifactId>collision_detection</artifactId>
+      <version>1.1.1</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
