@@ -22,6 +22,23 @@ DynamisAudio provides:
 - Reverb bus and fingerprint-driven reverb automation.
 - Ray backend factory with CI fallback (`dynamis.audio.raybackend=brute`).
 
+## Collision Assembly Mode Runtime Config
+
+The audio simulation collision bootstrap supports a single runtime property for assembly selection:
+
+- Property: `dynamis.audio.collision.assembly`
+- Accepted values:
+  - `legacy`
+  - `physics_preferred`
+- Default behavior:
+  - If unset or invalid, mode resolves to `LEGACY`.
+
+Current rollout guidance (single-path only):
+
+- Use this property only for the `AudioSimulationCollisionWorldBootstrap.createCollisionWorld(...)` path.
+- Keep other/non-adopting paths unchanged.
+- Do not flip global defaults during staged rollout; prefer explicit opt-in using `physics_preferred`.
+
 ## Required Startup Wiring
 
 1. Construct managers in dependency order:
