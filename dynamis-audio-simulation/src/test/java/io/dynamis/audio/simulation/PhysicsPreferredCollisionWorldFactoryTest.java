@@ -105,6 +105,77 @@ class PhysicsPreferredCollisionWorldFactoryTest {
         assertEquals(1, fallbackCalls.get());
     }
 
+    @Test
+    void createFromRuntimeConfigDefaultsToLegacyWhenUnset() {
+        withAssemblyProperty(null, () -> {
+            Body bodyA = new Body("a", new Vector3d(0.0, 0.0, 0.0), new Vector3d(0.0, 0.0, 0.0), 0.5, 1.0, 0.0);
+            Body bodyB = new Body("b", new Vector3d(0.8, 0.0, 0.0), new Vector3d(0.0, 0.0, 0.0), 0.5, 1.0, 0.0);
+            AtomicInteger fallbackCalls = new AtomicInteger(0);
+            CollisionResponder3D<Body> fallback = event -> fallbackCalls.incrementAndGet();
+
+            CollisionWorld3D<Body> world = PhysicsPreferredCollisionWorldFactory.createFromRuntimeConfig(
+                    new SweepAndPrune3D<>(),
+                    Body::aabb,
+                    body -> CollisionFilter.DEFAULT,
+                    (left, right) -> ContactGenerator3D.generate(left.aabb(), right.aabb()),
+                    new BodyAdapter(),
+                    fallback);
+            var events = world.update(List.of(bodyA, bodyB));
+
+            assertEquals(1, events.size());
+            assertEquals(CollisionEventType.ENTER, events.get(0).type());
+            assertEquals(1, fallbackCalls.get());
+        });
+    }
+
+    @Test
+    void createFromRuntimeConfigUsesPreferredWhenConfigured() {
+        withAssemblyProperty(PhysicsPreferredCollisionWorldFactory.VALUE_PHYSICS_PREFERRED, () -> {
+            Body bodyA = new Body("a", new Vector3d(0.0, 0.0, 0.0), new Vector3d(1.0, 0.0, 0.0), 0.5, 1.0, 0.2);
+            Body bodyB = new Body("b", new Vector3d(0.8, 0.0, 0.0), new Vector3d(-1.0, 0.0, 0.0), 0.5, 1.0, 0.2);
+            AtomicInteger fallbackCalls = new AtomicInteger(0);
+            CollisionResponder3D<Body> fallback = event -> fallbackCalls.incrementAndGet();
+
+            CollisionWorld3D<Body> world = PhysicsPreferredCollisionWorldFactory.createFromRuntimeConfig(
+                    new SweepAndPrune3D<>(),
+                    Body::aabb,
+                    body -> CollisionFilter.DEFAULT,
+                    (left, right) -> ContactGenerator3D.generate(left.aabb(), right.aabb()),
+                    new BodyAdapter(),
+                    fallback);
+            var events = world.update(List.of(bodyA, bodyB));
+
+            assertEquals(1, events.size());
+            assertEquals(CollisionEventType.ENTER, events.get(0).type());
+            assertEquals(0, fallbackCalls.get());
+        });
+    }
+
+    @Test
+    void resolveAssemblyModeFallsBackToLegacyForInvalidValue() {
+        withAssemblyProperty("invalid-value", () -> assertEquals(
+                CollisionWorldAssemblyMode.LEGACY,
+                PhysicsPreferredCollisionWorldFactory.resolveAssemblyModeFromRuntimeConfig()));
+    }
+
+    private static void withAssemblyProperty(String value, Runnable action) {
+        String previous = System.getProperty(PhysicsPreferredCollisionWorldFactory.PROPERTY_ASSEMBLY_MODE);
+        try {
+            if (value == null) {
+                System.clearProperty(PhysicsPreferredCollisionWorldFactory.PROPERTY_ASSEMBLY_MODE);
+            } else {
+                System.setProperty(PhysicsPreferredCollisionWorldFactory.PROPERTY_ASSEMBLY_MODE, value);
+            }
+            action.run();
+        } finally {
+            if (previous == null) {
+                System.clearProperty(PhysicsPreferredCollisionWorldFactory.PROPERTY_ASSEMBLY_MODE);
+            } else {
+                System.setProperty(PhysicsPreferredCollisionWorldFactory.PROPERTY_ASSEMBLY_MODE, previous);
+            }
+        }
+    }
+
     private static final class Body {
         private final String id;
         private Vector3d position;
