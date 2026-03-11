@@ -57,4 +57,39 @@ public final class PhysicsPreferredCollisionWorldFactory {
                 fallbackResponder,
                 seamSelectionPolicy);
     }
+
+    /**
+     * Additional runtime entrypoint with explicit assembly-mode selection.
+     *
+     * <p>Allows integration code to choose preferred or legacy assembly per callsite without
+     * changing global defaults.
+     */
+    public static <T> CollisionWorld3D<T> createForRuntime(
+            BroadPhase3D<T> broadPhase,
+            Function<T, Aabb> boundsProvider,
+            Function<T, CollisionFilter> filterProvider,
+            BiFunction<T, T, Optional<ContactManifold3D>> narrowPhase,
+            PhysicsContactBodyAdapter<T> bodyAdapter,
+            CollisionResponder3D<T> fallbackResponder,
+            CollisionWorldAssemblyMode mode) {
+        if (mode == null) {
+            throw new IllegalArgumentException("mode must not be null");
+        }
+        if (mode == CollisionWorldAssemblyMode.LEGACY) {
+            CollisionWorld3D<T> world = new CollisionWorld3D<>(
+                    broadPhase,
+                    boundsProvider,
+                    filterProvider,
+                    narrowPhase);
+            world.setResponder(fallbackResponder);
+            return world;
+        }
+        return create(
+                broadPhase,
+                boundsProvider,
+                filterProvider,
+                narrowPhase,
+                bodyAdapter,
+                fallbackResponder);
+    }
 }

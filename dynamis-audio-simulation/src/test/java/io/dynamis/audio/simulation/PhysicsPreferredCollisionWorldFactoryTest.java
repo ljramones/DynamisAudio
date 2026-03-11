@@ -61,6 +61,50 @@ class PhysicsPreferredCollisionWorldFactoryTest {
         assertEquals(1, fallbackCalls.get());
     }
 
+    @Test
+    void createForRuntimePreferredModeUsesPreferredAssembly() {
+        Body bodyA = new Body("a", new Vector3d(0.0, 0.0, 0.0), new Vector3d(1.0, 0.0, 0.0), 0.5, 1.0, 0.2);
+        Body bodyB = new Body("b", new Vector3d(0.8, 0.0, 0.0), new Vector3d(-1.0, 0.0, 0.0), 0.5, 1.0, 0.2);
+        AtomicInteger fallbackCalls = new AtomicInteger(0);
+        CollisionResponder3D<Body> fallback = event -> fallbackCalls.incrementAndGet();
+
+        CollisionWorld3D<Body> world = PhysicsPreferredCollisionWorldFactory.createForRuntime(
+                new SweepAndPrune3D<>(),
+                Body::aabb,
+                body -> CollisionFilter.DEFAULT,
+                (left, right) -> ContactGenerator3D.generate(left.aabb(), right.aabb()),
+                new BodyAdapter(),
+                fallback,
+                CollisionWorldAssemblyMode.PHYSICS_PREFERRED);
+        var events = world.update(List.of(bodyA, bodyB));
+
+        assertEquals(1, events.size());
+        assertEquals(CollisionEventType.ENTER, events.get(0).type());
+        assertEquals(0, fallbackCalls.get());
+    }
+
+    @Test
+    void createForRuntimeLegacyModeUsesLegacyAssembly() {
+        Body bodyA = new Body("a", new Vector3d(0.0, 0.0, 0.0), new Vector3d(0.0, 0.0, 0.0), 0.5, 1.0, 0.0);
+        Body bodyB = new Body("b", new Vector3d(0.8, 0.0, 0.0), new Vector3d(0.0, 0.0, 0.0), 0.5, 1.0, 0.0);
+        AtomicInteger fallbackCalls = new AtomicInteger(0);
+        CollisionResponder3D<Body> fallback = event -> fallbackCalls.incrementAndGet();
+
+        CollisionWorld3D<Body> world = PhysicsPreferredCollisionWorldFactory.createForRuntime(
+                new SweepAndPrune3D<>(),
+                Body::aabb,
+                body -> CollisionFilter.DEFAULT,
+                (left, right) -> ContactGenerator3D.generate(left.aabb(), right.aabb()),
+                new BodyAdapter(),
+                fallback,
+                CollisionWorldAssemblyMode.LEGACY);
+        var events = world.update(List.of(bodyA, bodyB));
+
+        assertEquals(1, events.size());
+        assertEquals(CollisionEventType.ENTER, events.get(0).type());
+        assertEquals(1, fallbackCalls.get());
+    }
+
     private static final class Body {
         private final String id;
         private Vector3d position;
