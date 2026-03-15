@@ -1,9 +1,9 @@
-module dynamis.audio.dsp {
-    requires transitive dynamis.audio.api;
-    requires dynamis.audio.core;
-    requires dynamis.audio.designer;
-    requires dynamis.audio.simulation;
+module org.dynamisengine.audio.dsp {
+    requires transitive org.dynamisengine.audio.api;
+    requires org.dynamisengine.audio.core;
+    requires org.dynamisengine.audio.designer;
+    requires org.dynamisengine.audio.simulation;
 
-    exports io.dynamis.audio.dsp;
-    exports io.dynamis.audio.dsp.device;
+    exports org.dynamisengine.audio.dsp;
+    exports org.dynamisengine.audio.dsp.device;
 }

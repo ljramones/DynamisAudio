@@ -4,7 +4,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>io.dynamis</groupId>
+    <groupId>org.dynamisengine.audio</groupId>
     <artifactId>dynamis-audio</artifactId>
     <version>0.1.0-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
@@ -15,42 +15,42 @@
 
   <dependencies>
     <dependency>
-      <groupId>io.dynamis</groupId>
+      <groupId>org.dynamisengine.audio</groupId>
       <artifactId>dynamis-audio-api</artifactId>
       <scope>compile</scope>
     </dependency>
     <dependency>
-      <groupId>io.dynamis</groupId>
+      <groupId>org.dynamisengine.audio</groupId>
       <artifactId>dynamis-audio-core</artifactId>
       <scope>compile</scope>
     </dependency>
     <dependency>
-      <groupId>io.dynamis</groupId>
+      <groupId>org.dynamisengine.audio</groupId>
       <artifactId>dynamis-audio-dsp</artifactId>
       <scope>compile</scope>
     </dependency>
     <dependency>
-      <groupId>io.dynamis</groupId>
+      <groupId>org.dynamisengine.audio</groupId>
       <artifactId>dynamis-audio-simulation</artifactId>
       <scope>compile</scope>
     </dependency>
     <dependency>
-      <groupId>io.dynamis</groupId>
+      <groupId>org.dynamisengine.audio</groupId>
       <artifactId>dynamis-audio-music</artifactId>
       <scope>compile</scope>
     </dependency>
     <dependency>
-      <groupId>io.dynamis</groupId>
+      <groupId>org.dynamisengine.audio</groupId>
       <artifactId>dynamis-audio-procedural</artifactId>
       <scope>compile</scope>
     </dependency>
     <dependency>
-      <groupId>io.dynamis</groupId>
+      <groupId>org.dynamisengine.audio</groupId>
       <artifactId>dynamis-audio-designer</artifactId>
       <scope>compile</scope>
     </dependency>
     <dependency>
-      <groupId>org.dynamisphysics</groupId>
+      <groupId>org.dynamisengine.physics</groupId>
       <artifactId>dynamisphysics-api</artifactId>
       <scope>test</scope>
     </dependency>

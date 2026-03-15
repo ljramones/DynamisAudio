@@ -1,9 +1,9 @@
-module dynamis.audio.simulation {
-    requires transitive dynamis.audio.api;
-    requires dynamis.audio.core;
-    requires static org.dynamiscollision;
-    requires static org.dynamisphysics.api;
-    requires static org.vectrix;
+module org.dynamisengine.audio.simulation {
+    requires transitive org.dynamisengine.audio.api;
+    requires org.dynamisengine.audio.core;
+    requires static org.dynamisengine.collision;
+    requires static org.dynamisengine.physics.api;
+    requires static org.dynamisengine.vectrix;
 
-    exports io.dynamis.audio.simulation;
+    exports org.dynamisengine.audio.simulation;
 }

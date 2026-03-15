@@ -1,5 +1,5 @@
-module dynamis.audio.core {
-    requires transitive dynamis.audio.api;
+module org.dynamisengine.audio.core {
+    requires transitive org.dynamisengine.audio.api;
 
-    exports io.dynamis.audio.core;
+    exports org.dynamisengine.audio.core;
 }

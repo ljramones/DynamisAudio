@@ -1,3 +1,3 @@
-module dynamis.audio.api {
-    exports io.dynamis.audio.api;
+module org.dynamisengine.audio.api {
+    exports org.dynamisengine.audio.api;
 }

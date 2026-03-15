@@ -4,7 +4,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>io.dynamis</groupId>
+    <groupId>org.dynamisengine.audio</groupId>
     <artifactId>dynamis-audio</artifactId>
     <version>0.1.0-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
@@ -15,11 +15,11 @@
 
   <dependencies>
     <dependency>
-      <groupId>io.dynamis</groupId>
+      <groupId>org.dynamisengine.audio</groupId>
       <artifactId>dynamis-audio-api</artifactId>
     </dependency>
     <dependency>
-      <groupId>io.dynamis</groupId>
+      <groupId>org.dynamisengine.audio</groupId>
       <artifactId>dynamis-audio-core</artifactId>
     </dependency>
     <dependency>
@@ -28,13 +28,13 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>org.dynamisphysics</groupId>
+      <groupId>org.dynamisengine.physics</groupId>
       <artifactId>dynamisphysics-api</artifactId>
       <version>0.3.1-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>org.dynamiscollision</groupId>
+      <groupId>org.dynamisengine.collision</groupId>
       <artifactId>collision_detection</artifactId>
       <version>1.1.1</version>
       <scope>provided</scope>

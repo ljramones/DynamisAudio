@@ -104,9 +104,9 @@ Repo-grounded observations:
 Public/internal split is functional but broad.
 
 Findings:
-- JPMS exports one broad package per module (`exports io.dynamis.audio.*`) rather than narrowly exposing API-only packages.
-- Concrete implementation classes are publicly consumable across layers (for example `io.dynamis.audio.core` and `io.dynamis.audio.dsp` exports include runtime implementation types).
-- DSP module exports device implementation package directly (`io.dynamis.audio.dsp.device`), including concrete backends.
+- JPMS exports one broad package per module (`exports org.dynamisengine.audio.*`) rather than narrowly exposing API-only packages.
+- Concrete implementation classes are publicly consumable across layers (for example `org.dynamisengine.audio.core` and `org.dynamisengine.audio.dsp` exports include runtime implementation types).
+- DSP module exports device implementation package directly (`org.dynamisengine.audio.dsp.device`), including concrete backends.
 
 Assessment: architecture includes explicit seam interfaces, but implementation leakage remains moderate because module exports are broad and concrete runtime types are part of the external surface.
 

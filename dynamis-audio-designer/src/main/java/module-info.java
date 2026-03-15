@@ -1,6 +1,6 @@
-module dynamis.audio.designer {
-    requires transitive dynamis.audio.api;
-    requires dynamis.audio.core;
+module org.dynamisengine.audio.designer {
+    requires transitive org.dynamisengine.audio.api;
+    requires org.dynamisengine.audio.core;
 
-    exports io.dynamis.audio.designer;
+    exports org.dynamisengine.audio.designer;
 }
