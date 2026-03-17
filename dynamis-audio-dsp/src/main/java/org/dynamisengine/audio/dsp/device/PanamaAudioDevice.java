@@ -10,15 +10,19 @@ import java.nio.ByteOrder;
  *
  * Wraps the platform audio API via Panama Foreign Function & Memory:
  *   Windows  -> WASAPI (Windows Audio Session API)
- *   macOS    -> CoreAudio (AudioUnit output)
+ *   macOS    -> CoreAudio (AudioQueue Services)
  *   Linux    -> ALSA (Advanced Linux Sound Architecture)
  *
  * PHASE 0 STATUS:
  *   Platform detection and off-heap buffer allocation are implemented.
  *   Actual native API calls (WASAPI/CoreAudio/ALSA) are STUBBED with a
  *   software fallback that writes to an off-heap MemorySegment and discards output.
- *   Full native integration is Phase 0 completion work - the contract and
+ *   Full native integration is Phase 1 work - the contract and
  *   buffer layout are locked here so native call sites can be dropped in.
+ *
+ *   All stubbed methods log warnings via System.Logger so developers know
+ *   native bindings are not yet active. The fallback path silently discards
+ *   audio data (NullAudioDevice behavior) - safe on all platforms.
  *
  * OFF-HEAP BUFFER LAYOUT:
  *   A single MemorySegment holds blockSize * channels * Float.BYTES bytes.
@@ -30,6 +34,11 @@ import java.nio.ByteOrder;
  *   open()  - allocates Arena and MemorySegment; called at startup only.
  */
 public final class PanamaAudioDevice implements AudioDevice {
+
+    private static final System.Logger LOG =
+        System.getLogger(PanamaAudioDevice.class.getName());
+
+    private static final String PHASE = "Phase 0 — stubs";
 
     // -- Platform detection ---------------------------------------------------
 
@@ -151,7 +160,7 @@ public final class PanamaAudioDevice implements AudioDevice {
     @Override
     public String deviceDescription() {
         return "PanamaAudioDevice [" + platform + ", " +
-               sampleRate + "Hz, " + channels + "ch, stub]";
+               sampleRate + "Hz, " + channels + "ch, " + PHASE + "]";
     }
 
     @Override
@@ -159,52 +168,189 @@ public final class PanamaAudioDevice implements AudioDevice {
 
     @Override
     public float outputLatencyMs() {
-        // Phase 0: return a nominal value.
+        // Phase 0: return a nominal value based on block size.
         // Phase 1: query from WASAPI/CoreAudio/ALSA after open().
         return (float) blockSize / sampleRate * 1000f;
     }
 
-    // -- Platform stubs (Phase 0) --------------------------------------------
-    // Each stub is a clearly marked insertion point for real Panama downcalls.
-    // The method signatures and MemorySegment contracts are final.
-
-    private void openWasapi(int sr, int ch, int bs) throws AudioDeviceException {
-        // TODO Phase 0: CoInitializeEx, IMMDeviceEnumerator, IAudioClient::Initialize
-        // Panama Linker.nativeLinker().downcallHandle(...) insertion point
+    /**
+     * Returns the current implementation phase.
+     *
+     * @return a human-readable phase identifier
+     */
+    public String phase() {
+        return PHASE;
     }
+
+    // -- macOS CoreAudio stubs ------------------------------------------------
+    //
+    // NATIVE BINDING PLAN (Phase 1):
+    //
+    // CoreAudio's AudioUnit API uses a pull-based render callback, which is
+    // difficult to reconcile with the push-based write() contract. Instead,
+    // use AudioQueue Services (AudioToolbox.framework) which is push-based:
+    //
+    //   open():
+    //     1. Load "AudioToolbox" via SymbolLookup.libraryLookup("AudioToolbox.framework/AudioToolbox", arena)
+    //     2. Bind AudioQueueNewOutput via Linker.nativeLinker().downcallHandle():
+    //        - Signature: (MemorySegment asbd, MemorySegment callback,
+    //                      MemorySegment userData, MemorySegment runLoop,
+    //                      MemorySegment runLoopMode, int flags,
+    //                      MemorySegment outQueue) -> int (OSStatus)
+    //        - Set up AudioStreamBasicDescription (ASBD) struct in off-heap memory:
+    //          mSampleRate=sr, mFormatID=kAudioFormatLinearPCM,
+    //          mFormatFlags=kAudioFormatFlagIsFloat|kAudioFormatFlagIsPacked,
+    //          mBytesPerPacket=ch*4, mFramesPerPacket=1,
+    //          mBytesPerFrame=ch*4, mChannelsPerFrame=ch, mBitsPerChannel=32
+    //     3. Bind AudioQueueAllocateBuffer:
+    //        - Allocate N buffers (typically 3) of blockSize*channels*4 bytes
+    //     4. Bind AudioQueueStart to begin playback
+    //
+    //   write():
+    //     1. Dequeue a free AudioQueueBuffer (from callback-populated free list)
+    //     2. Copy outputSegment contents into the buffer's mAudioData
+    //     3. Bind AudioQueueEnqueueBuffer to submit the filled buffer
+    //     - Zero-copy opportunity: if AudioQueueBuffer.mAudioData can be pointed
+    //       at outputSegment directly, skip the copy entirely
+    //
+    //   close():
+    //     1. Bind AudioQueueStop (synchronous) to drain pending buffers
+    //     2. Bind AudioQueueDispose to release the queue and buffers
+    //
+    // Alternative (AudioUnit render callback approach):
+    //     - Use AudioComponentFindNext to locate kAudioUnitType_Output /
+    //       kAudioUnitSubType_DefaultOutput
+    //     - AudioComponentInstanceNew to instantiate
+    //     - AudioUnitSetProperty with kAudioUnitProperty_StreamFormat
+    //     - Set render callback via kAudioUnitProperty_SetRenderCallback
+    //     - Maintain a lock-free ring buffer that write() pushes into and the
+    //       callback pulls from. Ring buffer must be wait-free on both sides.
+    //     - AudioUnitInitialize + AudioOutputUnitStart
+    //     - Close: AudioOutputUnitStop + AudioUnitUninitialize +
+    //       AudioComponentInstanceDispose
 
     private void openCoreAudio(int sr, int ch, int bs) throws AudioDeviceException {
-        // TODO Phase 0: AudioComponentFindNext, AudioUnitInitialize, AudioOutputUnitStart
-    }
-
-    private void openAlsa(int sr, int ch, int bs) throws AudioDeviceException {
-        // TODO Phase 0: snd_pcm_open, snd_pcm_hw_params_set_*, snd_pcm_prepare
-    }
-
-    private void openFallback(int sr, int ch, int bs) {
-        // Unknown platform - no native API; write() will discard output silently.
-    }
-
-    private void writeWasapi(MemorySegment segment, int frameCount, int channels) {
-        // TODO Phase 0: IAudioRenderClient::GetBuffer / ReleaseBuffer
-        // segment is already off-heap - pass address directly to GetBuffer target
+        LOG.log(System.Logger.Level.WARNING,
+            "PanamaAudioDevice [{0}]: CoreAudio native bindings not yet implemented. " +
+            "Audio output will be discarded (NullAudioDevice fallback). " +
+            "See source for AudioQueue Services binding plan.", PHASE);
     }
 
     private void writeCoreAudio(MemorySegment segment, int frameCount, int channels) {
-        // TODO Phase 0: AudioUnitRender callback - copy segment into AudioBufferList
+        // Stub: data written to off-heap outputSegment but not submitted to hardware.
+        // Phase 1 will enqueue via AudioQueueEnqueueBuffer.
+    }
+
+    private void closeCoreAudio() {
+        LOG.log(System.Logger.Level.DEBUG,
+            "PanamaAudioDevice [{0}]: CoreAudio close (no-op in stub mode)", PHASE);
+    }
+
+    // -- Windows WASAPI stubs -------------------------------------------------
+    //
+    // NATIVE BINDING PLAN (Phase 1):
+    //
+    //   open():
+    //     1. Load "ole32.dll" and "mmdevapi.dll" via SymbolLookup.libraryLookup()
+    //     2. Bind CoInitializeEx(NULL, COINIT_MULTITHREADED) to init COM
+    //     3. Bind CoCreateInstance to obtain IMMDeviceEnumerator
+    //        - CLSID_MMDeviceEnumerator, IID_IMMDeviceEnumerator
+    //     4. Call IMMDeviceEnumerator::GetDefaultAudioEndpoint(eRender, eConsole)
+    //        - COM vtable calls via downcallHandle on the vtable function pointer
+    //     5. Call IMMDevice::Activate(IID_IAudioClient, ...) to get IAudioClient
+    //     6. Set up WAVEFORMATEXTENSIBLE struct in off-heap memory:
+    //        wFormatTag=WAVE_FORMAT_EXTENSIBLE, nChannels=ch,
+    //        nSamplesPerSec=sr, wBitsPerSample=32,
+    //        SubFormat=KSDATAFORMAT_SUBTYPE_IEEE_FLOAT
+    //     7. Call IAudioClient::Initialize(AUDCLNT_SHAREMODE_SHARED,
+    //        AUDCLNT_STREAMFLAGS_EVENTCALLBACK, bufferDuration, 0, wfx, NULL)
+    //     8. Call IAudioClient::GetService(IID_IAudioRenderClient)
+    //     9. Call IAudioClient::Start()
+    //
+    //   write():
+    //     1. Call IAudioRenderClient::GetBuffer(frameCount) to get native buffer ptr
+    //     2. Copy outputSegment into the returned buffer via MemorySegment.copyFrom
+    //     3. Call IAudioRenderClient::ReleaseBuffer(frameCount, 0)
+    //     - Latency: query via IAudioClient::GetStreamLatency after open
+    //
+    //   close():
+    //     1. IAudioClient::Stop()
+    //     2. Release all COM interfaces (call Release() on each)
+    //     3. CoUninitialize()
+
+    private void openWasapi(int sr, int ch, int bs) throws AudioDeviceException {
+        LOG.log(System.Logger.Level.WARNING,
+            "PanamaAudioDevice [{0}]: WASAPI native bindings not yet implemented. " +
+            "Audio output will be discarded (NullAudioDevice fallback). " +
+            "See source for WASAPI/COM binding plan.", PHASE);
+    }
+
+    private void writeWasapi(MemorySegment segment, int frameCount, int channels) {
+        // Stub: data written to off-heap outputSegment but not submitted to hardware.
+        // Phase 1 will submit via IAudioRenderClient::GetBuffer/ReleaseBuffer.
+    }
+
+    private void closeWasapi() {
+        LOG.log(System.Logger.Level.DEBUG,
+            "PanamaAudioDevice [{0}]: WASAPI close (no-op in stub mode)", PHASE);
+    }
+
+    // -- Linux ALSA stubs -----------------------------------------------------
+    //
+    // NATIVE BINDING PLAN (Phase 1):
+    //
+    //   open():
+    //     1. Load "libasound.so.2" via SymbolLookup.libraryLookup("libasound.so.2", arena)
+    //     2. Bind snd_pcm_open(&handle, "default", SND_PCM_STREAM_PLAYBACK, 0)
+    //     3. Bind snd_pcm_hw_params_malloc / snd_pcm_hw_params_any
+    //     4. Set hardware parameters:
+    //        - snd_pcm_hw_params_set_access(SND_PCM_ACCESS_RW_INTERLEAVED)
+    //        - snd_pcm_hw_params_set_format(SND_PCM_FORMAT_FLOAT_LE)
+    //        - snd_pcm_hw_params_set_channels(ch)
+    //        - snd_pcm_hw_params_set_rate_near(sr)
+    //        - snd_pcm_hw_params_set_period_size_near(bs)
+    //     5. snd_pcm_hw_params(handle, params) to apply
+    //     6. snd_pcm_prepare(handle)
+    //
+    //   write():
+    //     1. snd_pcm_writei(handle, segment.address(), frameCount)
+    //        - segment is already off-heap, address() gives the native pointer
+    //        - On -EPIPE (underrun): call snd_pcm_prepare and retry once
+    //
+    //   close():
+    //     1. snd_pcm_drain(handle) - wait for pending frames to play
+    //     2. snd_pcm_close(handle)
+    //     - Latency: query via snd_pcm_delay after open
+
+    private void openAlsa(int sr, int ch, int bs) throws AudioDeviceException {
+        LOG.log(System.Logger.Level.WARNING,
+            "PanamaAudioDevice [{0}]: ALSA native bindings not yet implemented. " +
+            "Audio output will be discarded (NullAudioDevice fallback). " +
+            "See source for ALSA binding plan.", PHASE);
     }
 
     private void writeAlsa(MemorySegment segment, int frameCount, int channels) {
-        // TODO Phase 0: snd_pcm_writei(handle, segment.address(), frameCount)
+        // Stub: data written to off-heap outputSegment but not submitted to hardware.
+        // Phase 1 will call snd_pcm_writei.
+    }
+
+    private void closeAlsa() {
+        LOG.log(System.Logger.Level.DEBUG,
+            "PanamaAudioDevice [{0}]: ALSA close (no-op in stub mode)", PHASE);
+    }
+
+    // -- Fallback (unknown platform) ------------------------------------------
+
+    private void openFallback(int sr, int ch, int bs) {
+        LOG.log(System.Logger.Level.WARNING,
+            "PanamaAudioDevice [{0}]: Unknown platform ''{1}''. " +
+            "No native audio API available. Audio output will be discarded.",
+            PHASE, System.getProperty("os.name", "unknown"));
     }
 
     private void writeFallback(MemorySegment segment, int frameCount, int channels) {
         // No-op - unknown platform, data written to off-heap but not submitted
     }
-
-    private void closeWasapi() { /* TODO: IAudioClient::Stop, Release */ }
-    private void closeCoreAudio() { /* TODO: AudioOutputUnitStop, AudioUnitUninitialize */ }
-    private void closeAlsa() { /* TODO: snd_pcm_drain, snd_pcm_close */ }
 
     /** Returns the detected platform. Useful for diagnostics. */
     public Platform getPlatform() { return platform; }
