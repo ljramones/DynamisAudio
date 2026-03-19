@@ -20,6 +20,10 @@
     </dependency>
     <dependency>
       <groupId>org.dynamisengine.audio</groupId>
+      <artifactId>dynamis-audio-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.dynamisengine.audio</groupId>
       <artifactId>dynamis-audio-dsp</artifactId>
     </dependency>
     <dependency>

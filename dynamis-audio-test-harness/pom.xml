@@ -50,6 +50,21 @@
       <scope>compile</scope>
     </dependency>
     <dependency>
+      <groupId>org.dynamisengine.audio</groupId>
+      <artifactId>dynamis-audio-backend-coreaudio</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.dynamisengine.audio</groupId>
+      <artifactId>dynamis-audio-backend-alsa</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.dynamisengine.audio</groupId>
+      <artifactId>dynamis-audio-backend-wasapi</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>org.dynamisengine.physics</groupId>
       <artifactId>dynamisphysics-api</artifactId>
       <scope>test</scope>

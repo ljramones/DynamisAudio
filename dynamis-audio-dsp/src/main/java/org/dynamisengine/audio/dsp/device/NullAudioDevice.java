@@ -1,5 +1,7 @@
 package org.dynamisengine.audio.dsp.device;
 
+import org.dynamisengine.audio.api.device.AudioDeviceException;
+
 /**
  * No-op AudioDevice implementation for testing and headless CI environments.
  *

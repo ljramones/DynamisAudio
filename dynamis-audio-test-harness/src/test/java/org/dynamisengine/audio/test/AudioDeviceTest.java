@@ -1,5 +1,6 @@
 package org.dynamisengine.audio.test;
 
+import org.dynamisengine.audio.api.device.AudioDeviceException;
 import org.dynamisengine.audio.dsp.device.*;
 import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.*;

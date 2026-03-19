@@ -6,4 +6,6 @@ module org.dynamisengine.audio.dsp {
 
     exports org.dynamisengine.audio.dsp;
     exports org.dynamisengine.audio.dsp.device;
+
+    uses org.dynamisengine.audio.api.device.AudioBackend;
 }

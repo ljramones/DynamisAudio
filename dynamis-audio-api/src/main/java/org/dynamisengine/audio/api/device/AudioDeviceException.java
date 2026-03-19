@@ -1,9 +1,9 @@
-package org.dynamisengine.audio.dsp.device;
+package org.dynamisengine.audio.api.device;
 
 /**
- * Thrown when an AudioDevice operation fails at the platform level.
+ * Thrown when an audio device operation fails at the platform level.
  *
- * Carries a platform-specific error code for diagnostic purposes.
+ * Carries an optional platform-specific error code for diagnostic purposes.
  * The errorCode is platform-dependent: HRESULT on Windows, OSStatus on macOS,
  * errno on Linux. Use 0 if not applicable.
  */

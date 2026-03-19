@@ -212,8 +212,12 @@ public final class SoftwareMixer {
         java.util.Arrays.fill(silenceBuffer, 0f);
         masterBus.process(silenceBuffer, masterOutputBuffer, blockSize, channels);
 
-        // 4. Submit rendered block to audio device
-        audioDevice.write(masterOutputBuffer, blockSize, channels);
+        // 4. Submit rendered block to audio device (legacy push path).
+        // When using AudioDeviceManager (pull model), this write is a no-op
+        // because AudioDeviceManager reads getMasterOutputBuffer() after renderBlock().
+        if (audioDevice != null) {
+            audioDevice.write(masterOutputBuffer, blockSize, channels);
+        }
 
         blocksRendered++;
         lastBlockNanos = System.nanoTime() - blockStart;
@@ -310,5 +314,14 @@ public final class SoftwareMixer {
 
     /** Channel count. */
     public int getChannels() { return channels; }
+
+    /**
+     * Returns the master output buffer containing the most recently rendered block.
+     *
+     * Used by {@link org.dynamisengine.audio.dsp.device.AudioDeviceManager} to feed
+     * the ring buffer in pull mode. The buffer is only valid between consecutive
+     * {@link #renderBlock()} calls. Length: blockSize * channels interleaved float32.
+     */
+    public float[] getMasterOutputBuffer() { return masterOutputBuffer; }
 
 }

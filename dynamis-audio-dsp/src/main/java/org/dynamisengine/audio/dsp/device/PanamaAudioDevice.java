@@ -1,5 +1,7 @@
 package org.dynamisengine.audio.dsp.device;
 
+import org.dynamisengine.audio.api.device.AudioDeviceException;
+
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;

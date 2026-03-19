@@ -1,5 +1,7 @@
 package org.dynamisengine.audio.dsp.device;
 
+import org.dynamisengine.audio.api.device.AudioDeviceException;
+
 /**
  * Abstraction over a platform audio output device.
  *

@@ -23,6 +23,9 @@
     <module>dynamis-audio-music</module>
     <module>dynamis-audio-procedural</module>
     <module>dynamis-audio-designer</module>
+    <module>dynamis-audio-backend-coreaudio</module>
+    <module>dynamis-audio-backend-alsa</module>
+    <module>dynamis-audio-backend-wasapi</module>
     <module>dynamis-audio-test-harness</module>
   </modules>
 
@@ -66,6 +69,21 @@
       <dependency>
         <groupId>org.dynamisengine.audio</groupId>
         <artifactId>dynamis-audio-test-harness</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.dynamisengine.audio</groupId>
+        <artifactId>dynamis-audio-backend-coreaudio</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.dynamisengine.audio</groupId>
+        <artifactId>dynamis-audio-backend-alsa</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.dynamisengine.audio</groupId>
+        <artifactId>dynamis-audio-backend-wasapi</artifactId>
         <version>0.1.0-SNAPSHOT</version>
       </dependency>
 
