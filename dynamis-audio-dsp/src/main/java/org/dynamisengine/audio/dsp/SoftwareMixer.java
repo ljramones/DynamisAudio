@@ -196,13 +196,13 @@ public final class SoftwareMixer {
         sfxBus.submitBlock(voiceDryScratch, AcousticConstants.DSP_BLOCK_SIZE, channels);
         reverbBus.submitBlock(voiceReverbScratch, AcousticConstants.DSP_BLOCK_SIZE, channels);
 
-        // Completion drain: demote one-shot voices that exhausted this block.
+        // Completion drain: release voices whose assets are exhausted.
         VoiceManager vm = this.voiceManager;
-        if (vm != null) {
-            for (VoiceNode voice : voicePool.voices()) {
-                if (voice.isCompletionPending() && voice.isBound()) {
-                    LogicalEmitter completed = voice.boundEmitter();
-                    voicePool.release(voice);
+        for (VoiceNode voice : voicePool.voices()) {
+            if (voice.isCompletionPending() && voice.isBound()) {
+                LogicalEmitter completed = voice.boundEmitter();
+                voicePool.release(voice);
+                if (vm != null) {
                     vm.demoteNow(completed);
                 }
             }
