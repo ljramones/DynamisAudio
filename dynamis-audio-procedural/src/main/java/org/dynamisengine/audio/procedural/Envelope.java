@@ -63,11 +63,19 @@ public final class Envelope {
                 level -= decayDecrement;
                 if (level <= sustainLevel) {
                     level = sustainLevel;
-                    stage = EnvelopeStage.SUSTAIN;
+                    // If sustain level is effectively zero, skip SUSTAIN and go to OFF.
+                    // This allows one-shot sounds (sustain=0) to complete without
+                    // requiring an explicit noteOff() call.
+                    if (sustainLevel <= 0.001f) {
+                        level = 0f;
+                        stage = EnvelopeStage.OFF;
+                    } else {
+                        stage = EnvelopeStage.SUSTAIN;
+                    }
                 }
             }
             case SUSTAIN -> {
-                // Hold at sustain level
+                // Hold at sustain level until noteOff()
             }
             case RELEASE -> {
                 level -= releaseStartLevel * releaseDecrement;
